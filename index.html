@@ -33,6 +33,7 @@ input[type=color]{width:44px;height:30px;padding:0;border:1px solid var(--line);
 .cg{display:grid;gap:4px;margin:4px 0}.c3{grid-template-columns:repeat(3,1fr)}.c4{grid-template-columns:repeat(4,1fr)}
 .cg label{display:block;margin:0;font-size:12px;color:var(--mute)}.cg input{width:100%}
 .cap{font-size:12px;color:var(--mute);margin-top:6px}
+input[type=text]{width:150px;font:inherit;padding:5px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
 @media (max-width:760px){.app{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}}
 </style>
 </head>
@@ -47,7 +48,10 @@ input[type=color]{width:44px;height:30px;padding:0;border:1px solid var(--line);
     <div class="cg c3"><label>R<input type="number" id="cr" min="0" max="255"></label><label>G<input type="number" id="cgn" min="0" max="255"></label><label>B<input type="number" id="cb" min="0" max="255"></label></div>
     <div class="cap">CMYK, %</div>
     <div class="cg c4"><label>C<input type="number" id="cc" min="0" max="100"></label><label>M<input type="number" id="cm" min="0" max="100"></label><label>Y<input type="number" id="cy" min="0" max="100"></label><label>K<input type="number" id="ck" min="0" max="100"></label></div>
-    <div class="row"><button id="cadd">Dodaj do palety</button><button id="cset">Zmień wybrany</button></div>
+    <div class="row"><button id="cadd">Dodaj do palety</button></div>
+    <h2 style="margin-top:12px">Edytuj wybrany teren</h2>
+    <label>Nazwa <input type="text" id="tname" maxlength="24"></label>
+    <div class="row"><button id="cset">Zmień kolor</button><button id="nset">Zmień nazwę</button><button id="creset">Przywróć domyślny</button></div>
   </section>
   <section><h2>Narzędzie</h2>
     <div class="seg" id="tools">
@@ -93,7 +97,7 @@ const BASE=[
  {n:'Pustynia',c:'#e3cb8e'},{n:'Bagno',c:'#6f917b'},{n:'Śnieg',c:'#e9eff2'},{n:'Miasto',c:'#c08a5f'}];
 let T=BASE.slice();
 const S3=Math.sqrt(3);
-let st={g:'hex',cols:14,rows:10,size:30,cells:[],custom:[]},cur=0,tool='paint',down=false,bg=null,alpha=1,hide=true,maskKey='',mask=null;
+let st={g:'hex',cols:14,rows:10,size:30,cells:[],custom:[],ed:{}},cur=0,tool='paint',down=false,bg=null,alpha=1,hide=true,maskKey='',mask=null;
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),msg=document.getElementById('msg');
 const $=id=>document.getElementById(id);
 function say(t){msg.textContent=t}
@@ -153,13 +157,13 @@ function save(){try{localStorage.setItem('kartograf',JSON.stringify(st))}catch(e
 function sync(){$('cols').value=st.cols;$('rows').value=st.rows;$('size').value=st.size;
  document.querySelectorAll('#gt button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.g===st.g))}
 const pal=$('pal');function renderPal(){pal.innerHTML='';T.forEach((t,i)=>{const b=document.createElement('button');b.setAttribute('aria-pressed',i===cur);
- b.innerHTML='<i style="background:'+t.c+'"></i>'+t.n;b.onclick=()=>{cur=i;[...pal.children].forEach((x,j)=>x.setAttribute('aria-pressed',j===i));if(tool!=='add')tool='paint';setTool()};pal.appendChild(b)})}
+ const sw=document.createElement('i');sw.style.background=t.c;b.append(sw,t.n);b.onclick=()=>{cur=i;[...pal.children].forEach((x,j)=>x.setAttribute('aria-pressed',j===i));loadEd();if(tool!=='add')tool='paint';setTool()};pal.appendChild(b)})}
 renderPal();
 function setTool(){document.querySelectorAll('#tools button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===tool));draw();if(tool==='add')say('Kliknij lub przeciągnij po przerywanych obrysach, żeby dodać pola w pustych miejscach.');if(tool==='del')say('Kliknij pole, żeby usunąć je z siatki.')}
 document.querySelectorAll('#tools button').forEach(b=>b.onclick=()=>{tool=b.dataset.t;setTool()});
 document.querySelectorAll('#gt button').forEach(b=>b.onclick=()=>{st.g=b.dataset.g;if(bg){fit();initCells()}sync();draw();save()});
-function setCustom(){T=BASE.concat((st.custom||[]).map((c,i)=>({n:'Własny '+(i+1),c})))}
-function fixCustom(){if(!Array.isArray(st.custom))st.custom=[];st.custom=st.custom.filter(c=>/^#[0-9a-f]{6}$/i.test(c)).slice(0,16);setCustom()}
+function setCustom(){T=BASE.concat((st.custom||[]).map((c,i)=>({n:'Własny '+(i+1),c}))).map(t=>Object.assign({},t));const e=st.ed||{};for(const k in e)if(T[k])Object.assign(T[k],e[k])}
+function fixCustom(){if(!Array.isArray(st.custom))st.custom=[];st.custom=st.custom.filter(c=>/^#[0-9a-f]{6}$/i.test(c)).slice(0,16);const e={},o=st.ed&&typeof st.ed==='object'?st.ed:{};for(const k in o){const v=o[k],x={};if(v&&typeof v.n==='string'&&v.n.trim())x.n=v.n.trim().slice(0,24);if(v&&/^#[0-9a-f]{6}$/i.test(v.c))x.c=v.c;if(x.n||x.c)e[k]=x}st.ed=e;setCustom()}
 let col=[200,162,60];
 function toCMYK(r,g,b){const k=1-Math.max(r,g,b)/255;if(k>=1)return[0,0,0,100];return[(1-r/255-k)/(1-k),(1-g/255-k)/(1-k),(1-b/255-k)/(1-k),k].map(v=>Math.round(v*100))}
 function fromCMYK(c,m,y,k){return[c,m,y].map(v=>Math.round(255*(1-v/100)*(1-k/100)))}
@@ -173,9 +177,13 @@ RG.forEach(id=>$(id).addEventListener('input',()=>{col=RG.map(i=>clamp($(i).valu
 CM.forEach(id=>$(id).addEventListener('input',()=>{col=fromCMYK(...CM.map(i=>clamp($(i).value,100)));showCol('cmyk')}));
 $('cp').addEventListener('input',()=>{const h=$('cp').value;col=[1,3,5].map(i=>parseInt(h.substr(i,2),16));showCol()});
 $('cadd').onclick=()=>{if(st.custom.length>=16){say('Paleta własnych kolorów jest pełna (16).');return}
- st.custom.push(hex(col));setCustom();cur=T.length-1;if(tool!=='add')tool='paint';renderPal();setTool();save();say('Dodano kolor '+hex(col)+' do palety.')};
-$('cset').onclick=()=>{if(cur<BASE.length){say('Najpierw wybierz własny kolor z palety.');return}
- st.custom[cur-BASE.length]=hex(col);setCustom();renderPal();draw();save();say('Zmieniono kolor na '+hex(col)+'.')};
+ st.custom.push(hex(col));setCustom();cur=T.length-1;if(tool!=='add')tool='paint';renderPal();loadEd();setTool();save();say('Dodano kolor '+hex(col)+' do palety.')};
+$('cset').onclick=()=>{
+ if(cur<BASE.length)edit(cur,{c:hex(col)});else st.custom[cur-BASE.length]=hex(col);setCustom();renderPal();draw();save();say('Zmieniono kolor na '+hex(col)+'.')};
+function edit(i,v){st.ed[i]=Object.assign(st.ed[i]||{},v)}
+function loadEd(){const h=T[cur].c;col=[1,3,5].map(i=>parseInt(h.substr(i,2),16));showCol();$('tname').value=T[cur].n}
+$('nset').onclick=()=>{const n=$('tname').value.trim().slice(0,24);if(!n){say('Wpisz nazwę terenu.');return}edit(cur,{n});setCustom();renderPal();save();say('Zmieniono nazwę na „'+n+'”.')};
+$('creset').onclick=()=>{delete st.ed[cur];setCustom();renderPal();loadEd();draw();save();say('Przywrócono ustawienia domyślne wybranego terenu.')};
 function fit(){if(!bg)return;const W=bg.w,H=bg.h;
  if(st.g==='hex'){st.size=(W-2)/(S3*(st.cols+.5));st.rows=Math.max(2,Math.ceil((H-2-.5*st.size)/(1.5*st.size)))}
  else{st.size=(W-2)/st.cols/1.7;st.rows=Math.max(2,Math.ceil((H-2)/sq()))}
@@ -199,11 +207,11 @@ $('json').onclick=()=>{const o=Object.assign({},st);delete o._oc;dl('mapa-projek
 $('load').onclick=()=>$('file').click();
 $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t);
  if(!Array.isArray(o.cells)||o.cells.length!==o.cols*o.rows)throw 0;st=Object.assign({g:'hex',size:30,custom:[]},o,{_oc:o.cols});fixCustom();
- st.cells=st.cells.map(v=>T[v]?v:0);if(!Array.isArray(st.ov)||st.ov.length!==st.cells.length)st.ov=st.cells.map(()=>0);cur=0;renderPal();sync();draw();save();say('Wczytano projekt.')}catch(x){say('To nie jest poprawny plik projektu.')}})};
+ st.cells=st.cells.map(v=>T[v]?v:0);if(!Array.isArray(st.ov)||st.ov.length!==st.cells.length)st.ov=st.cells.map(()=>0);cur=0;renderPal();loadEd();sync();draw();save();say('Wczytano projekt.')}catch(x){say('To nie jest poprawny plik projektu.')}})};
 try{const s=JSON.parse(localStorage.getItem('kartograf')||'null');
  if(s&&Array.isArray(s.cells)&&s.cells.length===s.cols*s.rows){st=Object.assign(st,s);fixCustom();st.cells=st.cells.map(v=>T[v]?v:0);st._oc=st.cols;if(!Array.isArray(st.ov)||st.ov.length!==st.cells.length)st.ov=st.cells.map(()=>0)}}catch(e){}
 if(st.cells.length!==st.cols*st.rows)initCells();
-sync();bgState();showCol();draw();
+sync();bgState();loadEd();draw();
 })();
 </script>
 </body>

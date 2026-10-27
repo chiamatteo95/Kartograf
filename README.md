@@ -7,6 +7,7 @@ Prosty edytor map i plansz do gier strategicznych. Działa w przeglądarce, w je
 - siatka heksagonalna lub kwadratowa (od 2×2 do 40×40 pól)
 - 8 typów terenu: trawa, las, woda, góry, pustynia, bagno, śnieg, miasto
 - własne kolory (do 16) wybierane w RGB, CMYK lub próbnikiem
+- zmiana nazw i kolorów wszystkich terenów, także wbudowanych
 - malowanie przeciąganiem (mysz i dotyk) oraz wypełnianie obszaru
 - wgrywanie obrazu z konturami jako tła, do którego dopasowuje się siatka
 - ukrywanie pól nad pustym tłem
