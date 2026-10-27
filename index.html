@@ -119,9 +119,14 @@ function glyph(t,x,y,u){ctx.save();ctx.lineWidth=Math.max(1,u*.07);ctx.strokeSty
  ctx.restore()}
 function buildOutside(){const W=bg.w,H=bg.h,cn=document.createElement('canvas');cn.width=W;cn.height=H;const g=cn.getContext('2d');g.drawImage(bg.img,0,0,W,H);
  const d=g.getImageData(0,0,W,H).data,out=new Uint8Array(W*H),s=[];
- const emp=i=>{const p=i*4;return d[p+3]<24||(d[p]>=225&&d[p+1]>=225&&d[p+2]>=225)};
+ const q=Math.min(3,(W>>1)-1,(H>>1)-1),ring=[];
+ for(let a=0;a<W;a++)ring.push(q*W+a,(H-1-q)*W+a);for(let b=0;b<H;b++)ring.push(b*W+q,b*W+W-1-q);
+ const cnt={};let best='t',bn=0;
+ for(const i of ring){const p=i*4,k=d[p+3]<24?'t':(d[p]>>3)+','+(d[p+1]>>3)+','+(d[p+2]>>3);cnt[k]=(cnt[k]||0)+1;if(cnt[k]>bn){bn=cnt[k];best=k}}
+ const ref=best==='t'?null:best.split(',').map(v=>v*8+4);
+ const emp=i=>{const p=i*4;if(d[p+3]<24)return true;return !!ref&&Math.abs(d[p]-ref[0])<=30&&Math.abs(d[p+1]-ref[1])<=30&&Math.abs(d[p+2]-ref[2])<=30};
  const push=i=>{if(!out[i]&&emp(i)){out[i]=1;s.push(i)}};
- for(let a=0;a<W;a++){push(a);push((H-1)*W+a)}for(let b=0;b<H;b++){push(b*W);push(b*W+W-1)}
+ for(let a=0;a<W;a++){push(a);push((H-1)*W+a)}for(let b=0;b<H;b++){push(b*W);push(b*W+W-1)}for(const i of ring)push(i);
  while(s.length){const i=s.pop(),a=i%W;if(a>0)push(i-1);if(a<W-1)push(i+1);if(i>=W)push(i-W);if(i<W*(H-1))push(i+W)}
  bg.out=out}
 function vis(m,i){const o=st.ov&&st.ov[i];return o===1||(o!==-1&&(!m||m[i]))}
@@ -161,7 +166,7 @@ const pal=$('pal');function renderPal(){pal.innerHTML='';T.forEach((t,i)=>{const
 renderPal();
 function setTool(){document.querySelectorAll('#tools button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===tool));draw();if(tool==='add')say('Kliknij lub przeciągnij po przerywanych obrysach, żeby dodać pola w pustych miejscach.');if(tool==='del')say('Kliknij pole, żeby usunąć je z siatki.')}
 document.querySelectorAll('#tools button').forEach(b=>b.onclick=()=>{tool=b.dataset.t;setTool()});
-document.querySelectorAll('#gt button').forEach(b=>b.onclick=()=>{st.g=b.dataset.g;if(bg){fit();initCells()}sync();draw();save()});
+document.querySelectorAll('#gt button').forEach(b=>b.onclick=()=>{const o=snap();st.g=b.dataset.g;if(bg){fit();remap(o)}sync();draw();save()});
 function setCustom(){T=BASE.concat((st.custom||[]).map((c,i)=>({n:'Własny '+(i+1),c}))).map(t=>Object.assign({},t));const e=st.ed||{};for(const k in e)if(T[k])Object.assign(T[k],e[k])}
 function fixCustom(){if(!Array.isArray(st.custom))st.custom=[];st.custom=st.custom.filter(c=>/^#[0-9a-f]{6}$/i.test(c)).slice(0,16);const e={},o=st.ed&&typeof st.ed==='object'?st.ed:{};for(const k in o){const v=o[k],x={};if(v&&typeof v.n==='string'&&v.n.trim())x.n=v.n.trim().slice(0,24);if(v&&/^#[0-9a-f]{6}$/i.test(v.c))x.c=v.c;if(x.n||x.c)e[k]=x}st.ed=e;setCustom()}
 let col=[200,162,60];
@@ -184,6 +189,17 @@ function edit(i,v){st.ed[i]=Object.assign(st.ed[i]||{},v)}
 function loadEd(){const h=T[cur].c;col=[1,3,5].map(i=>parseInt(h.substr(i,2),16));showCol();$('tname').value=T[cur].n}
 $('nset').onclick=()=>{const n=$('tname').value.trim().slice(0,24);if(!n){say('Wpisz nazwę terenu.');return}edit(cur,{n});setCustom();renderPal();save();say('Zmieniono nazwę na „'+n+'”.')};
 $('creset').onclick=()=>{delete st.ed[cur];setCustom();renderPal();loadEd();draw();save();say('Przywrócono ustawienia domyślne wybranego terenu.')};
+function cellAtG(g,x,y,cols,rows,size){let c,r;
+ if(g==='sq'){const s=size*1.7;c=Math.floor((x-1)/s);r=Math.floor((y-1)/s)}
+ else{const s=size,px=x-S3*s/2-1,py=y-s-1,xx=(S3/3*px-py/3)/s,zz=2/3*py/s,yy=-xx-zz;
+  let rx=Math.round(xx),ry=Math.round(yy),rz=Math.round(zz);const dx=Math.abs(rx-xx),dy=Math.abs(ry-yy),dz=Math.abs(rz-zz);
+  if(dx>dy&&dx>dz)rx=-ry-rz;else if(dy>dz)ry=-rx-rz;else rz=-rx-ry;
+  r=rz;c=rx+(rz-(rz&1))/2}
+ return c>=0&&r>=0&&c<cols&&r<rows?r*cols+c:-1}
+function snap(){const d=dims();return{g:st.g,cols:st.cols,rows:st.rows,size:st.size,cells:st.cells,ov:st.ov,w:d[0],h:d[1]}}
+function remap(o){const d=dims(),n=[],v=[];
+ for(let r=0;r<st.rows;r++)for(let c=0;c<st.cols;c++){const p=center(c,r),j=cellAtG(o.g,p[0]*o.w/d[0],p[1]*o.h/d[1],o.cols,o.rows,o.size);n.push(j<0?0:o.cells[j]);v.push(j<0?0:(o.ov[j]||0))}
+ st.cells=n;st.ov=v;st._oc=st.cols}
 function fit(){if(!bg)return;const W=bg.w,H=bg.h;
  if(st.g==='hex'){st.size=(W-2)/(S3*(st.cols+.5));st.rows=Math.max(2,Math.ceil((H-2-.5*st.size)/(1.5*st.size)))}
  else{st.size=(W-2)/st.cols/1.7;st.rows=Math.max(2,Math.ceil((H-2)/sq()))}
@@ -191,14 +207,14 @@ function fit(){if(!bg)return;const W=bg.w,H=bg.h;
 function bgState(){const on=!!bg;$('rows').disabled=on;$('size').disabled=on;$('bgx').disabled=!on}
 $('bgb').onclick=()=>$('bgf').click();
 $('bgf').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const fr=new FileReader();
- fr.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,1200/im.width);bg={img:im,w:Math.round(im.width*k),h:Math.round(im.height*k)};
-  buildOutside();maskKey='';st._oc=st.cols;fit();initCells();alpha=.6;$('alpha').value=60;bgState();draw();save();say('Tło wgrane, siatka dopasowała się do szerokości obrazu. Zmień liczbę kolumn, żeby zagęścić lub rozrzedzić pola.')};
+ fr.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,1200/im.width),o=snap();bg={img:im,w:Math.round(im.width*k),h:Math.round(im.height*k)};
+  buildOutside();maskKey='';fit();remap(o);st.ov=st.cells.map(()=>0);alpha=.6;$('alpha').value=60;bgState();draw();save();say('Tło wgrane, siatka dopasowała się do szerokości obrazu. Zmień liczbę kolumn, żeby zagęścić lub rozrzedzić pola.')};
   im.onerror=()=>say('Nie udało się odczytać obrazu.');im.src=fr.result};fr.readAsDataURL(f)};
 $('bgx').onclick=()=>{const m=getMask();st.ov=st.ov.map((o,i)=>vis(m,i)?0:-1);bg=null;alpha=1;$('alpha').value=100;bgState();draw();save();say('Tło usunięte, kształt siatki został zachowany.')};
 $('alpha').addEventListener('input',()=>{alpha=$('alpha').value/100;draw()});
 $('hide').addEventListener('change',()=>{hide=$('hide').checked;draw()});
 function resize(){const c=Math.max(2,Math.min(40,+$('cols').value||14)),r=Math.max(2,Math.min(40,+$('rows').value||10));
- st._oc=st.cols;st.cols=c;st.rows=r;st.size=+$('size').value;fit();initCells();draw();save()}
+ const o=snap();st._oc=st.cols;st.cols=c;st.rows=r;st.size=+$('size').value;fit();if(bg)remap(o);else initCells();draw();save()}
 ['cols','rows','size'].forEach(id=>$(id).addEventListener('input',resize));
 $('clear').onclick=()=>{st.cells=st.cells.map(()=>0);draw();save();say('Plansza wyczyszczona.')};
 function dl(name,data){try{const u=URL.createObjectURL(data),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);say('Zapisano: '+name)}catch(e){say('Nie udało się zapisać pliku.')}}
