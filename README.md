@@ -13,7 +13,7 @@ Prosty edytor map i plansz do gier strategicznych. Działa w przeglądarce, w je
 - ukrywanie pól nad pustym tłem
 - dodawanie i usuwanie pojedynczych pól
 - eksport mapy do PNG oraz zapis i wczytanie projektu (JSON)
-- autozapis w przeglądarce (bez wgranego tła)
+- przeglądarka pamięta własne kolory i nazwy terenów, a plansza po otwarciu jest pusta (do zachowania planszy służy zapis projektu)
 
 ## Uruchomienie
 
