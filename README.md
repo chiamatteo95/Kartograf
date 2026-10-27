@@ -1,0 +1,24 @@
+# Kartograf
+
+Prosty edytor map i plansz do gier strategicznych. Działa w przeglądarce, w jednym pliku `index.html`, bez instalacji i bez zewnętrznych bibliotek.
+
+## Funkcje
+
+- siatka heksagonalna lub kwadratowa (od 2×2 do 40×40 pól)
+- 8 typów terenu: trawa, las, woda, góry, pustynia, bagno, śnieg, miasto
+- malowanie przeciąganiem (mysz i dotyk) oraz wypełnianie obszaru
+- wgrywanie obrazu z konturami jako tła, do którego dopasowuje się siatka
+- ukrywanie pól nad pustym tłem
+- dodawanie i usuwanie pojedynczych pól
+- eksport mapy do PNG oraz zapis i wczytanie projektu (JSON)
+- autozapis w przeglądarce (bez wgranego tła)
+
+## Uruchomienie
+
+Otwórz `index.html` w przeglądarce. Możesz też opublikować stronę przez GitHub Pages
+(Settings → Pages → Deploy from a branch → `main` / `/ (root)`).
+
+## Uwagi
+
+- Wgrane tło nie jest zapisywane w autozapisie ani w pliku projektu. Po ponownym otwarciu wgraj je jeszcze raz.
+- Kontur wgrany jako tło powinien być zamknięty, inaczej wnętrze zostanie uznane za puste.
