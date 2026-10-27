@@ -67,7 +67,7 @@ input[type=text]{width:150px;font:inherit;padding:5px;border:1px solid var(--lin
     </div>
     <label>Kolumny <input type="number" id="cols" min="2" max="40" value="14"></label>
     <label>Wiersze <input type="number" id="rows" min="2" max="40" value="10"></label>
-    <label>Rozmiar pola <input type="range" id="size" min="16" max="50" value="30"></label>
+    <label>Rozmiar pola <input type="range" id="size" min="16" max="150" value="30"></label>
   </section>
   <section><h2>Tło mapy</h2>
     <div class="row"><button id="bgb">Wgraj kontury</button><button id="bgx">Usuń tło</button></div>
@@ -194,7 +194,7 @@ $('bgf').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;c
  fr.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,1200/im.width);bg={img:im,w:Math.round(im.width*k),h:Math.round(im.height*k)};
   buildOutside();maskKey='';st._oc=st.cols;fit();initCells();alpha=.6;$('alpha').value=60;bgState();draw();save();say('Tło wgrane, siatka dopasowała się do szerokości obrazu. Zmień liczbę kolumn, żeby zagęścić lub rozrzedzić pola.')};
   im.onerror=()=>say('Nie udało się odczytać obrazu.');im.src=fr.result};fr.readAsDataURL(f)};
-$('bgx').onclick=()=>{bg=null;alpha=1;$('alpha').value=100;bgState();draw();say('Tło usunięte.')};
+$('bgx').onclick=()=>{const m=getMask();st.ov=st.ov.map((o,i)=>vis(m,i)?0:-1);bg=null;alpha=1;$('alpha').value=100;bgState();draw();save();say('Tło usunięte, kształt siatki został zachowany.')};
 $('alpha').addEventListener('input',()=>{alpha=$('alpha').value/100;draw()});
 $('hide').addEventListener('change',()=>{hide=$('hide').checked;draw()});
 function resize(){const c=Math.max(2,Math.min(40,+$('cols').value||14)),r=Math.max(2,Math.min(40,+$('rows').value||10));
